@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>חמ״ל עיריית חדרה</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    @keyframes tickerRTL {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    .animate-ticker {
+      display: inline-block;
+      white-space: nowrap;
+      animation: tickerRTL 25s linear infinite;
+    }
+    .animate-ticker:hover {
+      animation-play-state: paused;
+    }
+    
+    @media print {
+      .no-print { display: none !important; }
+      body { background-color: white; }
+      .print-full-width { width: 100% !important; max-width: none !important; }
+      .shadow-sm, .shadow-md, .shadow-lg { box-shadow: none !important; border: 1px solid #e2e8f0; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 font-sans min-h-screen">
+
+  <!-- HEADER -->
+  <header class="bg-slate-900 text-white shadow-lg print-full-width">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- Logo and Title -->
+        <div class="flex items-center gap-4">
+          <div class="bg-blue-600 p-2 rounded-lg">
+            <i data-lucide="shield-alert" class="w-8 h-8 text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">חמ״ל עיריית חדרה</h1>
+            <p class="text-blue-300 text-sm font-medium">מערכת ניהול ובקרת אירועים</p>
+          </div>
+        </div>
+
+        <!-- Clock & Actions -->
+        <div class="flex items-center gap-6">
+          <div class="text-left hidden md:block">
+            <div id="clock-time" class="text-2xl font-mono font-bold text-blue-400">--:--:--</div>
+            <div id="clock-date" class="text-sm text-slate-300">--</div>
+          </div>
+          
+          <div class="flex gap-2 no-print">
+            <button id="export-csv-btn" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-md transition-colors border border-slate-700 text-sm font-medium" title="ייצוא לאקסל (CSV)">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span class="hidden sm:inline">אקסל</span>
+            </button>
+            <button id="print-pdf-btn" class="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-md transition-colors border border-slate-700 text-sm font-medium" title="ייצוא ל-PDF / הדפסה">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+              <span class="hidden sm:inline">PDF</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- TICKER (SLIDER) -->
+  <div class="bg-red-600 text-white overflow-hidden relative h-10 flex items-center shadow-md print-full-width">
+    <div class="absolute right-0 bg-red-700 h-full px-4 flex items-center z-10 border-l border-red-500 font-bold gap-2">
+      <i data-lucide="radio" class="w-4 h-4 animate-pulse"></i>
+      מבזקים:
+    </div>
+    <div class="w-full pl-4 pr-32 overflow-hidden">
+      <div id="ticker-content" class="animate-ticker text-sm md:text-base font-medium">
+        <!-- Ticker items will be injected here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 print-full-width">
+    
+    <!-- STATS ROW -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4">
+        <div class="bg-slate-100 p-3 rounded-full text-slate-600">
+          <i data-lucide="radio" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-sm text-slate-500 font-medium">סה״כ אירועים במערכת</p>
+          <p id="stat-total" class="text-2xl font-bold text-slate-800">0</p>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 border-b-4 border-b-red-500">
+        <div class="bg-red-50 p-3 rounded-full text-red-600">
+          <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-sm text-slate-500 font-medium">אירועים פתוחים</p>
+          <p id="stat-open" class="text-2xl font-bold text-red-600">0</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 border-b-4 border-b-orange-500">
+        <div class="bg-orange-50 p-3 rounded-full text-orange-600">
+          <i data-lucide="clock" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-sm text-slate-500 font-medium">אירועים בטיפול</p>
+          <p id="stat-progress" class="text-2xl font-bold text-orange-600">0</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4">
+        <div class="bg-rose-50 p-3 rounded-full text-rose-600">
+          <i data-lucide="info" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-sm text-slate-500 font-medium">עדיפות גבוהה (פעילים)</p>
+          <p id="stat-high" class="text-2xl font-bold text-rose-600">0</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENTS BOARD -->
+    <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden print-full-width">
+      <div class="p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800">משימות והערכות מצב</h2>
+          <p class="text-sm text-slate-500">ריכוז אירועים בזמן אמת</p>
+        </div>
+        <button id="add-event-btn" class="no-print flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm">
+          <i data-lucide="plus" class="w-5 h-5"></i>
+          פתיחת אירוע חדש
+        </button>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-right">
+          <thead class="bg-slate-100 text-slate-600 text-sm">
+            <tr>
+              <th class="py-4 px-6 font-semibold border-b">מספר</th>
+              <th class="py-4 px-6 font-semibold border-b">זמן פתיחה</th>
+              <th class="py-4 px-6 font-semibold border-b w-1/4">כותרת האירוע</th>
+              <th class="py-4 px-6 font-semibold border-b w-1/3">תיאור ופעולות לביצוע</th>
+              <th class="py-4 px-6 font-semibold border-b">עדיפות</th>
+              <th class="py-4 px-6 font-semibold border-b">סטטוס</th>
+              <th class="py-4 px-6 font-semibold border-b no-print text-center">פעולות</th>
+            </tr>
+          </thead>
+          <tbody id="events-table-body" class="divide-y divide-slate-100">
+            <!-- Events will be injected here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL (NEW/EDIT EVENT) -->
+  <div id="event-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+        <h3 id="modal-title" class="text-xl font-bold text-slate-800">פתיחת אירוע חמ״ל חדש</h3>
+        <button id="close-modal-icon" class="text-slate-400 hover:text-slate-600 hover:bg-slate-200 p-2 rounded-full transition-colors text-2xl leading-none">&times;</button>
+      </div>
+      
+      <div class="p-6 overflow-y-auto">
+        <form id="event-form" class="space-y-5">
+          <input type="hidden" id="event-id">
+          
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">כותרת האירוע (תמציתי)</label>
+            <input type="text" id="event-title" required class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="לדוגמה: שריפת קוצים בשכונת הפארק">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">תיאור מפורט ופעולות נדרשות</label>
+            <textarea id="event-desc" required rows="4" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none" placeholder="פרט את המיקום המדויק, גורמים מעורבים, סכנות פוטנציאליות..."></textarea>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">רמת עדיפות</label>
+              <select id="event-priority" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                <option value="נמוך">נמוך</option>
+                <option value="בינוני" selected>בינוני</option>
+                <option value="גבוה">גבוה</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">סטטוס טיפול</label>
+              <select id="event-status" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                <option value="פתוח" selected>פתוח</option>
+                <option value="בטיפול">בטיפול</option>
+                <option value="סגור">סגור</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      
+      <div class="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+        <button type="button" id="cancel-modal-btn" class="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg font-medium transition-colors">
+          ביטול
+        </button>
+        <button type="submit" form="event-form" id="submit-modal-btn" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm">
+          פתח אירוע
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="mt-12 py-6 text-center text-slate-400 text-sm print-full-width border-t border-slate-200">
+    <p>עיריית חדרה - מערכת ניהול חמ״ל &copy; <span id="current-year"></span></p>
+    <p class="mt-1 no-print">לסיוע טכני פנה לאגף מערכות מידע</p>
+  </footer>
+
+  <script>
+    // --- Data State ---
+    let events = [
+      { id: 101, title: 'הצפה ברחוב הנשיא', description: 'דיווח על סתימה בקולטן והצפת הכביש ליד כיכר המשטרה.', status: 'פתוח', priority: 'גבוה', timeOpened: '08:30', dateOpened: '2026-03-06' },
+      { id: 102, title: 'עץ קרס בשכונת בית אליעזר', description: 'עץ פיקוס גדול קרס על רכב חונה, אין נפגעים. צוות גיזום בדרך.', status: 'בטיפול', priority: 'בינוני', timeOpened: '09:15', dateOpened: '2026-03-06' },
+      { id: 103, title: 'הפסקת חשמל ממוקדת בגבעת אולגה', description: 'מספר רחובות ללא חשמל, חברת חשמל עודכנה ומטפלת.', status: 'פתוח', priority: 'גבוה', timeOpened: '10:05', dateOpened: '2026-03-06' },
+      { id: 104, title: 'פינוי אשפה חריג', description: 'בקשה לפינוי מכולה חריגה מאזור התעשייה שמונעת מעבר משאיות.', status: 'סגור', priority: 'נמוך', timeOpened: '07:00', dateOpened: '2026-03-06' }
+    ];
+
+    const updates = [
+      "עדכון הערכת מצב הבאה בשעה 14:00 בראשות ראש העיר",
+      "צוותי הכוננות של אגף שפ״ע פרוסים ברחבי העיר",
+      "כביש 4 פקוק מצומת המשטרה צפונה, מומלץ להשתמש בדרכים חלופיות",
+      "המוקד העירוני 106 תוגבר במוקדנים נוספים עקב עומס הפניות"
+    ];
+
+    // --- Clock Logic ---
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock-time').textContent = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('clock-date').textContent = now.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+    document.getElementById('current-year').textContent = new Date().getFullYear();
+
+    // --- Ticker Render ---
+    function renderTicker() {
+      const tickerContainer = document.getElementById('ticker-content');
+      let html = '';
+      updates.forEach(update => {
+        html += `<span class="mx-8"><span class="text-red-300 mr-2">♦</span> ${update}</span>`;
+      });
+      tickerContainer.innerHTML = html;
+    }
+
+    // --- Stats Render ---
+    function updateStats() {
+      document.getElementById('stat-total').textContent = events.length;
+      document.getElementById('stat-open').textContent = events.filter(e => e.status === 'פתוח').length;
+      document.getElementById('stat-progress').textContent = events.filter(e => e.status === 'בטיפול').length;
+      document.getElementById('stat-high').textContent = events.filter(e => e.priority === 'גבוה' && e.status !== 'סגור').length;
+    }
+
+    // --- Table Render & Helpers ---
+    function getStatusColor(status) {
+      switch(status) {
+        case 'פתוח': return 'bg-red-100 text-red-800 border-red-200';
+        case 'בטיפול': return 'bg-orange-100 text-orange-800 border-orange-200';
+        case 'סגור': return 'bg-green-100 text-green-800 border-green-200';
+        default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      }
+    }
+
+    function getPriorityColor(priority) {
+      switch(priority) {
+        case 'גבוה': return 'text-red-600 bg-red-50';
+        case 'בינוני': return 'text-orange-600 bg-orange-50';
+        case 'נמוך': return 'text-blue-600 bg-blue-50';
+        default: return 'text-gray-600 bg-gray-50';
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('events-table-body');
+      tbody.innerHTML = '';
+
+      if (events.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colSpan="7" class="py-12 text-center text-slate-500">
+              <i data-lucide="check-circle" class="w-12 h-12 text-green-300 mx-auto mb-3"></i>
+              אין אירועים פתוחים במערכת. שגרה מבורכת.
+            </td>
+          </tr>
+        `;
+      } else {
+        events.forEach(event => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition-colors';
+          tr.innerHTML = `
+            <td class="py-4 px-6 text-sm font-medium text-slate-500">#${event.id}</td>
+            <td class="py-4 px-6 text-sm text-slate-600" dir="ltr">${event.timeOpened}<br/><span class="text-xs text-slate-400">${event.dateOpened}</span></td>
+            <td class="py-4 px-6 font-bold text-slate-800">${event.title}</td>
+            <td class="py-4 px-6 text-sm text-slate-600 leading-relaxed">${event.description}</td>
+            <td class="py-4 px-6">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getPriorityColor(event.priority)}">
+                ${event.priority}
+              </span>
+            </td>
+            <td class="py-4 px-6">
+              <select onchange="updateEventStatus(${event.id}, this.value)" class="text-sm font-bold rounded-full px-3 py-1 border outline-none cursor-pointer appearance-none ${getStatusColor(event.status)}">
+                <option value="פתוח" ${event.status === 'פתוח' ? 'selected' : ''}>פתוח</option>
+                <option value="בטיפול" ${event.status === 'בטיפול' ? 'selected' : ''}>בטיפול</option>
+                <option value="סגור" ${event.status === 'סגור' ? 'selected' : ''}>סגור</option>
+              </select>
+            </td>
+            <td class="py-4 px-6 text-center no-print">
+              <button onclick="openEditModal(${event.id})" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex" title="ערוך אירוע">
+                <i data-lucide="edit" class="w-5 h-5"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+      
+      // Re-initialize icons for newly added DOM elements
+      lucide.createIcons();
+      updateStats();
+    }
+
+    window.updateEventStatus = function(id, newStatus) {
+      events = events.map(ev => ev.id === id ? { ...ev, status: newStatus } : ev);
+      renderTable();
+    };
+
+    // --- Modal Logic ---
+    const modal = document.getElementById('event-modal');
+    const form = document.getElementById('event-form');
+    
+    function closeModal() {
+      modal.classList.add('hidden');
+      form.reset();
+      document.getElementById('event-id').value = '';
+    }
+
+    document.getElementById('add-event-btn').addEventListener('click', () => {
+      document.getElementById('modal-title').textContent = 'פתיחת אירוע חמ״ל חדש';
+      document.getElementById('submit-modal-btn').textContent = 'פתח אירוע';
+      document.getElementById('event-id').value = '';
+      form.reset();
+      modal.classList.remove('hidden');
+    });
+
+    window.openEditModal = function(id) {
+      const event = events.find(e => e.id === id);
+      if (!event) return;
+      
+      document.getElementById('modal-title').textContent = 'עדכון אירוע קיים';
+      document.getElementById('submit-modal-btn').textContent = 'שמור שינויים';
+      
+      document.getElementById('event-id').value = event.id;
+      document.getElementById('event-title').value = event.title;
+      document.getElementById('event-desc').value = event.description;
+      document.getElementById('event-priority').value = event.priority;
+      document.getElementById('event-status').value = event.status;
+      
+      modal.classList.remove('hidden');
+    };
+
+    document.getElementById('close-modal-icon').addEventListener('click', closeModal);
+    document.getElementById('cancel-modal-btn').addEventListener('click', closeModal);
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const id = document.getElementById('event-id').value;
+      const title = document.getElementById('event-title').value;
+      const description = document.getElementById('event-desc').value;
+      const priority = document.getElementById('event-priority').value;
+      const status = document.getElementById('event-status').value;
+
+      if (id) {
+        // Edit existing
+        events = events.map(ev => ev.id == id ? { ...ev, title, description, priority, status } : ev);
+      } else {
+        // Add new
+        const now = new Date();
+        const newEvent = {
+          id: Math.floor(Math.random() * 10000) + 100,
+          title,
+          description,
+          priority,
+          status,
+          timeOpened: now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+          dateOpened: now.toISOString().split('T')[0]
+        };
+        events.unshift(newEvent); // Add to beginning
+      }
+      
+      renderTable();
+      closeModal();
+    });
+
+    // --- Export & Print ---
+    document.getElementById('print-pdf-btn').addEventListener('click', () => {
+      window.print();
+    });
+
+    document.getElementById('export-csv-btn').addEventListener('click', () => {
+      const headers = ['מספר אירוע', 'כותרת', 'תיאור', 'סטטוס', 'עדיפות', 'תאריך פתיחה', 'שעת פתיחה'];
+      const rows = events.map(e => [
+        e.id, 
+        `"${e.title.replace(/"/g, '""')}"`, 
+        `"${e.description.replace(/"/g, '""')}"`, 
+        e.status, 
+        e.priority, 
+        e.dateOpened, 
+        e.timeOpened
+      ]);
+      
+      const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Hamal_Hadera_Export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // --- Initialize ---
+    renderTicker();
+    renderTable();
+    lucide.createIcons();
+
+  </script>
+</body>
+</html>
